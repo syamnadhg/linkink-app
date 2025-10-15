@@ -1,73 +1,58 @@
 import { useState } from 'react'
-import { MessageCircle, Send, Heart, UserPlus } from 'lucide-react'
+import { Send, MessageCircle, Heart, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { mockPosts, filterPosts } from '../../data/users'
 
-export default function AnonymousPosts({ filters }) {
-  const [posts, setPosts] = useState([
-    {
-      id: 1,
-      content: "Just moved to the city and looking to meet new people. Anyone want to grab coffee? ☕",
-      replies: 12,
-      likes: 24,
-      timestamp: "2 hours ago"
-    },
-    {
-      id: 2,
-      content: "Love hiking and outdoor adventures. Would be great to find someone who shares the same passion! 🏔️",
-      replies: 8,
-      likes: 15,
-      timestamp: "4 hours ago"
-    },
-    {
-      id: 3,
-      content: "Looking for someone to binge-watch shows with and have deep conversations about life 🎬",
-      replies: 20,
-      likes: 35,
-      timestamp: "6 hours ago"
-    }
-  ])
+export default function AnonymousPosts({ filters, onMatch, onStartChat }) {
   const [newPost, setNewPost] = useState('')
+  const [posts, setPosts] = useState(mockPosts)
   const [selectedPost, setSelectedPost] = useState(null)
-  const [chatMessage, setChatMessage] = useState('')
+  const [replyText, setReplyText] = useState('')
+
+  const filteredPosts = filterPosts(posts, filters)
 
   const handleCreatePost = () => {
-    if (newPost.trim()) {
-      setPosts([
-        {
-          id: posts.length + 1,
-          content: newPost,
-          replies: 0,
-          likes: 0,
-          timestamp: "Just now"
-        },
-        ...posts
-      ])
-      setNewPost('')
+    if (!newPost.trim()) return
+    
+    const post = {
+      id: Date.now(),
+      userId: 'me',
+      text: newPost,
+      timestamp: 'Just now',
+      replies: 0,
+      likes: 0,
+      location: 'Your location',
+      gender: 'your-gender',
+      interests: 'your-interests'
     }
+    
+    setPosts([post, ...posts])
+    setNewPost('')
   }
 
-  const handleStartChat = (post) => {
+  const handleSendMatchRequest = (post) => {
+    // In real app, this would send a match request
+    alert(`Match request sent! Waiting for acceptance...`)
+  }
+
+  const handleReply = (post) => {
     setSelectedPost(post)
   }
 
-  const handleMatch = (post) => {
-    alert(`Matched with user from post #${post.id}! You can now chat openly.`)
-  }
-
   return (
-    <div className="space-y-6">
-      {/* Create New Post */}
-      <div className="bg-white/20 rounded-xl p-4">
+    <div className="max-w-4xl mx-auto">
+      {/* Create Post */}
+      <div className="bg-muted rounded-xl p-4 mb-6">
         <textarea
           value={newPost}
           onChange={(e) => setNewPost(e.target.value)}
           placeholder="Share something anonymously..."
-          className="w-full bg-white/30 text-white placeholder-white/60 border border-white/30 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-white/50 min-h-[100px]"
+          className="w-full bg-background text-foreground rounded-lg p-3 min-h-[100px] focus:outline-none focus:ring-2 focus:ring-primary resize-none"
         />
-        <div className="flex justify-end mt-2">
+        <div className="flex justify-end mt-3">
           <Button
             onClick={handleCreatePost}
-            className="bg-white text-purple-600 hover:bg-white/90"
+            className="gradient-purple text-white"
           >
             <Send className="w-4 h-4 mr-2" />
             Post Anonymously
@@ -75,79 +60,90 @@ export default function AnonymousPosts({ filters }) {
         </div>
       </div>
 
-      {/* Posts Feed */}
-      <div className="space-y-4">
-        {posts.map((post) => (
+      {/* Posts Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {filteredPosts.map((post) => (
           <div
             key={post.id}
-            className="bg-white/20 rounded-xl p-6 hover:bg-white/30 transition-all"
+            className="bg-card rounded-xl p-5 shadow-md border border-border hover-lift transition-smooth cursor-pointer"
           >
-            <div className="flex items-start space-x-4">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-600 flex items-center justify-center text-white font-bold">
-                A
+            {/* Anonymous Avatar */}
+            <div className="flex items-center mb-3">
+              <div className="w-10 h-10 rounded-full gradient-purple-soft flex items-center justify-center">
+                <User className="w-5 h-5 text-primary" />
               </div>
-              <div className="flex-1">
-                <p className="text-white text-lg mb-3">{post.content}</p>
-                <div className="flex items-center space-x-4 text-white/70 text-sm">
-                  <span>{post.timestamp}</span>
-                  <span className="flex items-center">
-                    <MessageCircle className="w-4 h-4 mr-1" />
-                    {post.replies} replies
-                  </span>
-                  <span className="flex items-center">
-                    <Heart className="w-4 h-4 mr-1" />
-                    {post.likes} likes
-                  </span>
-                </div>
-                <div className="flex space-x-2 mt-4">
-                  <Button
-                    onClick={() => handleStartChat(post)}
-                    size="sm"
-                    className="bg-white/20 text-white hover:bg-white/30"
-                  >
-                    <MessageCircle className="w-4 h-4 mr-1" />
-                    Chat
-                  </Button>
-                  <Button
-                    onClick={() => handleMatch(post)}
-                    size="sm"
-                    className="bg-white/20 text-white hover:bg-white/30"
-                  >
-                    <UserPlus className="w-4 h-4 mr-1" />
-                    Match
-                  </Button>
-                </div>
+              <div className="ml-3 flex-1">
+                <p className="text-sm font-semibold text-foreground">Anonymous</p>
+                <p className="text-xs text-muted-foreground">{post.timestamp}</p>
               </div>
+            </div>
+
+            {/* Post Content */}
+            <p className="text-foreground mb-4 leading-relaxed">{post.text}</p>
+
+            {/* Post Stats */}
+            <div className="flex items-center text-sm text-muted-foreground mb-4">
+              <MessageCircle className="w-4 h-4 mr-1" />
+              <span className="mr-4">{post.replies} replies</span>
+              <Heart className="w-4 h-4 mr-1" />
+              <span>{post.likes} likes</span>
+            </div>
+
+            {/* Actions */}
+            <div className="flex space-x-2">
+              <Button
+                onClick={() => handleReply(post)}
+                size="sm"
+                variant="outline"
+                className="flex-1"
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Chat
+              </Button>
+              <Button
+                onClick={() => handleSendMatchRequest(post)}
+                size="sm"
+                className="flex-1 gradient-purple text-white"
+              >
+                <Heart className="w-4 h-4 mr-2" />
+                Match
+              </Button>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Chat Modal (simplified) */}
+      {/* Reply Modal (simplified) */}
       {selectedPost && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full">
-            <h3 className="text-xl font-bold mb-4">Anonymous Chat</h3>
-            <div className="bg-gray-100 rounded-lg p-4 mb-4 h-64 overflow-y-auto">
-              <p className="text-gray-600 text-sm">Start chatting anonymously...</p>
-            </div>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-card rounded-2xl p-6 max-w-md w-full">
+            <h3 className="text-lg font-bold mb-4">Reply Anonymously</h3>
+            <p className="text-sm text-muted-foreground mb-4">{selectedPost.text}</p>
+            <textarea
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              placeholder="Type your reply..."
+              className="w-full bg-muted rounded-lg p-3 min-h-[100px] focus:outline-none focus:ring-2 focus:ring-primary resize-none mb-4"
+            />
             <div className="flex space-x-2">
-              <input
-                type="text"
-                value={chatMessage}
-                onChange={(e) => setChatMessage(e.target.value)}
-                placeholder="Type a message..."
-                className="flex-1 border rounded-lg px-3 py-2"
-              />
-              <Button onClick={() => setChatMessage('')}>Send</Button>
+              <Button
+                onClick={() => setSelectedPost(null)}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  setReplyText('')
+                  setSelectedPost(null)
+                  alert('Reply sent!')
+                }}
+                className="flex-1 gradient-purple text-white"
+              >
+                Send
+              </Button>
             </div>
-            <Button
-              onClick={() => setSelectedPost(null)}
-              className="w-full mt-4"
-              variant="outline"
-            >
-              Close
-            </Button>
           </div>
         </div>
       )}

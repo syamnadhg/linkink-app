@@ -1,12 +1,24 @@
-import { useState } from 'react'
-import { Phone, PhoneOff, Mic, MicOff, UserPlus } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Phone, PhoneOff, Mic, MicOff, UserPlus, Volume2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-export default function VoiceSection({ filters }) {
+export default function VoiceSection({ filters, onMatch }) {
   const [isInCall, setIsInCall] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [callDuration, setCallDuration] = useState(0)
   const [isSearching, setIsSearching] = useState(false)
+  const [matchSent, setMatchSent] = useState(false)
+  const [currentCaller, setCurrentCaller] = useState(null)
+
+  useEffect(() => {
+    let interval
+    if (isInCall) {
+      interval = setInterval(() => {
+        setCallDuration((prev) => prev + 1)
+      }, 1000)
+    }
+    return () => clearInterval(interval)
+  }, [isInCall])
 
   const handleStartCall = () => {
     setIsSearching(true)
@@ -14,11 +26,11 @@ export default function VoiceSection({ filters }) {
     setTimeout(() => {
       setIsSearching(false)
       setIsInCall(true)
-      // Start call duration timer
-      const interval = setInterval(() => {
-        setCallDuration((prev) => prev + 1)
-      }, 1000)
-      return () => clearInterval(interval)
+      setCurrentCaller({
+        name: 'Anonymous',
+        location: 'Unknown',
+        interests: filters.interests !== 'all' ? filters.interests : 'casual'
+      })
     }, 2000)
   }
 
@@ -26,11 +38,13 @@ export default function VoiceSection({ filters }) {
     setIsInCall(false)
     setCallDuration(0)
     setIsMuted(false)
+    setMatchSent(false)
+    setCurrentCaller(null)
   }
 
-  const handleMatch = () => {
-    alert('Matched! You can now chat and connect outside of voice calls.')
-    handleEndCall()
+  const handleSendMatchRequest = () => {
+    setMatchSent(true)
+    alert('Match request sent! If they accept, you can continue chatting in your chat space.')
   }
 
   const formatDuration = (seconds) => {
@@ -40,62 +54,73 @@ export default function VoiceSection({ filters }) {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="bg-white rounded-2xl shadow-2xl p-8">
+    <div className="max-w-md mx-auto">
+      <div className="bg-card rounded-3xl shadow-2xl p-8">
         <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-800 mb-4">Voice Matching</h2>
-          <p className="text-gray-600 mb-8">
-            Connect with someone through voice. Have a conversation and match if you click!
-          </p>
-
           {!isInCall && !isSearching && (
             <div className="space-y-6">
-              <div className="w-32 h-32 mx-auto bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center">
+              <div className="w-32 h-32 mx-auto gradient-purple rounded-full flex items-center justify-center shadow-xl">
                 <Phone className="w-16 h-16 text-white" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-foreground mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
+                  Voice Matching
+                </h2>
+                <p className="text-muted-foreground">
+                  Connect through voice and match if you click
+                </p>
               </div>
               <Button
                 onClick={handleStartCall}
                 size="lg"
-                className="bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:from-pink-600 hover:to-purple-700 px-8 py-6 text-lg"
+                className="gradient-purple text-white px-8 py-6 text-lg hover-scale transition-smooth"
               >
                 <Phone className="w-6 h-6 mr-2" />
                 Start Voice Call
               </Button>
-              <p className="text-sm text-gray-500">
-                You'll be matched with someone based on your filters
+              <p className="text-sm text-muted-foreground">
+                You'll be matched based on your filters
               </p>
             </div>
           )}
 
           {isSearching && (
-            <div className="space-y-6">
-              <div className="w-32 h-32 mx-auto bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center animate-pulse">
+            <div className="space-y-6 py-8">
+              <div className="w-32 h-32 mx-auto gradient-purple rounded-full flex items-center justify-center animate-pulse shadow-xl">
                 <Phone className="w-16 h-16 text-white" />
               </div>
-              <p className="text-xl text-gray-700">Finding someone for you...</p>
+              <div>
+                <h3 className="text-xl font-semibold text-foreground mb-2">Finding someone...</h3>
+                <p className="text-muted-foreground">This won't take long</p>
+              </div>
             </div>
           )}
 
           {isInCall && (
-            <div className="space-y-6">
-              <div className="w-32 h-32 mx-auto bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center">
-                <Mic className={`w-16 h-16 text-white ${isMuted ? 'opacity-50' : ''}`} />
-              </div>
-              
-              <div className="space-y-2">
-                <p className="text-2xl font-bold text-gray-800">In Call</p>
-                <p className="text-xl text-gray-600">{formatDuration(callDuration)}</p>
+            <div className="space-y-6 py-4">
+              {/* Caller Info */}
+              <div className="bg-muted rounded-2xl p-6">
+                <div className="w-24 h-24 mx-auto gradient-purple-soft rounded-full flex items-center justify-center mb-4">
+                  <Volume2 className={`w-12 h-12 text-primary ${!isMuted && 'animate-pulse'}`} />
+                </div>
+                <h3 className="text-xl font-semibold text-foreground mb-1">
+                  {currentCaller?.name}
+                </h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                  {currentCaller?.location} • {currentCaller?.interests}
+                </p>
+                <p className="text-2xl font-bold text-primary">
+                  {formatDuration(callDuration)}
+                </p>
               </div>
 
+              {/* Call Controls */}
               <div className="flex justify-center space-x-4">
                 <Button
                   onClick={() => setIsMuted(!isMuted)}
                   size="lg"
-                  className={`rounded-full w-16 h-16 ${
-                    isMuted
-                      ? 'bg-gray-400 hover:bg-gray-500'
-                      : 'bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-100'
-                  }`}
+                  variant="outline"
+                  className="rounded-full w-14 h-14 hover-scale transition-smooth"
                 >
                   {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
                 </Button>
@@ -103,22 +128,32 @@ export default function VoiceSection({ filters }) {
                 <Button
                   onClick={handleEndCall}
                   size="lg"
-                  className="bg-red-500 text-white hover:bg-red-600 rounded-full w-16 h-16"
+                  className="bg-destructive hover:bg-destructive/90 rounded-full w-14 h-14 hover-scale transition-smooth"
                 >
                   <PhoneOff className="w-6 h-6" />
                 </Button>
                 
-                <Button
-                  onClick={handleMatch}
-                  size="lg"
-                  className="bg-green-500 text-white hover:bg-green-600 rounded-full w-16 h-16"
-                >
-                  <UserPlus className="w-6 h-6" />
-                </Button>
+                {!matchSent ? (
+                  <Button
+                    onClick={handleSendMatchRequest}
+                    size="lg"
+                    className="gradient-purple rounded-full w-14 h-14 hover-scale transition-smooth"
+                  >
+                    <UserPlus className="w-6 h-6" />
+                  </Button>
+                ) : (
+                  <Button
+                    size="lg"
+                    disabled
+                    className="bg-muted rounded-full w-14 h-14"
+                  >
+                    <UserPlus className="w-6 h-6 text-muted-foreground" />
+                  </Button>
+                )}
               </div>
 
-              <p className="text-sm text-gray-500">
-                Enjoying the conversation? Click the + button to match!
+              <p className="text-sm text-muted-foreground">
+                {matchSent ? 'Match request sent! ✓' : 'Enjoying the call? Send a match request!'}
               </p>
             </div>
           )}
@@ -126,13 +161,25 @@ export default function VoiceSection({ filters }) {
       </div>
 
       {/* Instructions */}
-      <div className="mt-6 bg-white/20 rounded-xl p-6">
-        <h3 className="text-lg font-bold text-white mb-3">How it works</h3>
-        <ul className="space-y-2 text-white/80">
-          <li>• Click "Start Voice Call" to join the call pool</li>
-          <li>• You'll be matched with someone based on your filters</li>
-          <li>• Have a conversation and see if you connect</li>
-          <li>• If you both want to match, you can become friends</li>
+      <div className="mt-6 bg-muted rounded-xl p-5">
+        <h3 className="text-sm font-bold text-foreground mb-3">How it works</h3>
+        <ul className="space-y-2 text-sm text-muted-foreground">
+          <li className="flex items-start">
+            <span className="text-primary mr-2">•</span>
+            <span>Click "Start Voice Call" to join the call pool</span>
+          </li>
+          <li className="flex items-start">
+            <span className="text-primary mr-2">•</span>
+            <span>You'll be matched with someone based on your filters</span>
+          </li>
+          <li className="flex items-start">
+            <span className="text-primary mr-2">•</span>
+            <span>Have a conversation and see if you connect</span>
+          </li>
+          <li className="flex items-start">
+            <span className="text-primary mr-2">•</span>
+            <span>Send a match request during the call if you want to stay connected</span>
+          </li>
         </ul>
       </div>
     </div>
