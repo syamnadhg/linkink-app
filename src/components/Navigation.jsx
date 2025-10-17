@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Heart, Gamepad2 } from 'lucide-react'
+import { Heart, Gamepad2, Settings } from 'lucide-react'
 
-export default function Navigation() {
+export default function Navigation({ onOpenSettings }) {
   const location = useLocation()
   
   return (
@@ -10,10 +10,10 @@ export default function Navigation() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
             <h1 className="text-2xl font-bold text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>
-              Connect
+              Linkink
             </h1>
           </div>
-          <div className="flex space-x-2">
+          <div className="flex items-center space-x-2">
             <Link
               to="/dating"
               className={`flex items-center px-4 py-2 rounded-lg transition-smooth ${
@@ -36,6 +36,13 @@ export default function Navigation() {
               <Gamepad2 className="w-5 h-5 mr-2" />
               Games
             </Link>
+            <button
+              onClick={onOpenSettings}
+              className="p-2 text-foreground hover:bg-muted rounded-lg transition-smooth"
+              title="Settings"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </div>

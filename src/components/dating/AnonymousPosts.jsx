@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Send, MessageCircle, Heart, User } from 'lucide-react'
+import { Send, MessageCircle, Heart, User, Image as ImageIcon, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { mockPosts, filterPosts } from '../../data/users'
 
@@ -8,16 +8,36 @@ export default function AnonymousPosts({ filters, onMatch, onStartChat }) {
   const [posts, setPosts] = useState(mockPosts)
   const [selectedPost, setSelectedPost] = useState(null)
   const [replyText, setReplyText] = useState('')
+  const [selectedImage, setSelectedImage] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null)
 
   const filteredPosts = filterPosts(posts, filters)
 
+  const handleImageSelect = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setSelectedImage(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null)
+    setImagePreview(null)
+  }
+
   const handleCreatePost = () => {
-    if (!newPost.trim()) return
+    if (!newPost.trim() && !selectedImage) return
     
     const post = {
       id: Date.now(),
       userId: 'me',
       text: newPost,
+      image: imagePreview,
       timestamp: 'Just now',
       replies: 0,
       likes: 0,
@@ -28,10 +48,11 @@ export default function AnonymousPosts({ filters, onMatch, onStartChat }) {
     
     setPosts([post, ...posts])
     setNewPost('')
+    setSelectedImage(null)
+    setImagePreview(null)
   }
 
   const handleSendMatchRequest = (post) => {
-    // In real app, this would send a match request
     alert(`Match request sent! Waiting for acceptance...`)
   }
 
@@ -49,10 +70,38 @@ export default function AnonymousPosts({ filters, onMatch, onStartChat }) {
           placeholder="Share something anonymously..."
           className="w-full bg-background text-foreground rounded-lg p-3 min-h-[100px] focus:outline-none focus:ring-2 focus:ring-primary resize-none"
         />
-        <div className="flex justify-end mt-3">
+        
+        {/* Image Preview */}
+        {imagePreview && (
+          <div className="relative mt-3 inline-block">
+            <img
+              src={imagePreview}
+              alt="Preview"
+              className="max-h-48 rounded-lg object-cover"
+            />
+            <button
+              onClick={handleRemoveImage}
+              className="absolute top-2 right-2 p-1 bg-black/50 hover:bg-black/70 rounded-full transition-smooth"
+            >
+              <X className="w-4 h-4 text-white" />
+            </button>
+          </div>
+        )}
+        
+        <div className="flex justify-between items-center mt-3">
+          <label className="cursor-pointer p-2 hover:bg-background rounded-lg transition-smooth">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageSelect}
+              className="hidden"
+            />
+            <ImageIcon className="w-5 h-5 text-primary" />
+          </label>
           <Button
             onClick={handleCreatePost}
             className="gradient-purple text-white"
+            disabled={!newPost.trim() && !selectedImage}
           >
             <Send className="w-4 h-4 mr-2" />
             Post Anonymously
@@ -65,7 +114,7 @@ export default function AnonymousPosts({ filters, onMatch, onStartChat }) {
         {filteredPosts.map((post) => (
           <div
             key={post.id}
-            className="bg-card rounded-xl p-5 shadow-md border border-border hover-lift transition-smooth cursor-pointer"
+            className="bg-card rounded-xl p-5 shadow-md border border-border hover-lift transition-smooth"
           >
             {/* Anonymous Avatar */}
             <div className="flex items-center mb-3">
@@ -79,25 +128,38 @@ export default function AnonymousPosts({ filters, onMatch, onStartChat }) {
             </div>
 
             {/* Post Content */}
-            <p className="text-foreground mb-4 leading-relaxed">{post.text}</p>
+            <p className="text-foreground mb-3 leading-relaxed">{post.text}</p>
 
-            {/* Post Stats */}
-            <div className="flex items-center text-sm text-muted-foreground mb-4">
-              <MessageCircle className="w-4 h-4 mr-1" />
-              <span className="mr-4">{post.replies} replies</span>
-              <Heart className="w-4 h-4 mr-1" />
-              <span>{post.likes} likes</span>
+            {/* Post Image */}
+            {post.image && (
+              <img
+                src={post.image}
+                alt="Post content"
+                className="w-full rounded-lg mb-3 object-cover max-h-64"
+              />
+            )}
+
+            {/* Engagement Stats */}
+            <div className="flex items-center space-x-4 mb-3 text-sm text-muted-foreground">
+              <span className="flex items-center">
+                <MessageCircle className="w-4 h-4 mr-1" />
+                {post.replies} replies
+              </span>
+              <span className="flex items-center">
+                <Heart className="w-4 h-4 mr-1" />
+                {post.likes} likes
+              </span>
             </div>
 
-            {/* Actions */}
+            {/* Action Buttons */}
             <div className="flex space-x-2">
               <Button
                 onClick={() => handleReply(post)}
-                size="sm"
                 variant="outline"
+                size="sm"
                 className="flex-1"
               >
-                <MessageCircle className="w-4 h-4 mr-2" />
+                <MessageCircle className="w-4 h-4 mr-1" />
                 Chat
               </Button>
               <Button
@@ -105,48 +167,13 @@ export default function AnonymousPosts({ filters, onMatch, onStartChat }) {
                 size="sm"
                 className="flex-1 gradient-purple text-white"
               >
-                <Heart className="w-4 h-4 mr-2" />
+                <Heart className="w-4 h-4 mr-1" />
                 Match
               </Button>
             </div>
           </div>
         ))}
       </div>
-
-      {/* Reply Modal (simplified) */}
-      {selectedPost && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card rounded-2xl p-6 max-w-md w-full">
-            <h3 className="text-lg font-bold mb-4">Reply Anonymously</h3>
-            <p className="text-sm text-muted-foreground mb-4">{selectedPost.text}</p>
-            <textarea
-              value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
-              placeholder="Type your reply..."
-              className="w-full bg-muted rounded-lg p-3 min-h-[100px] focus:outline-none focus:ring-2 focus:ring-primary resize-none mb-4"
-            />
-            <div className="flex space-x-2">
-              <Button
-                onClick={() => setSelectedPost(null)}
-                variant="outline"
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={() => {
-                  setReplyText('')
-                  setSelectedPost(null)
-                  alert('Reply sent!')
-                }}
-                className="flex-1 gradient-purple text-white"
-              >
-                Send
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

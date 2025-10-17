@@ -1,6 +1,6 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -79,7 +79,7 @@
   --sidebar-ring: #9B87C4;
 }
 
-.dark {
+[data-theme="dark"] {
   --background: #1A1A1A;
   --foreground: #F5F1ED;
   --card: #2A2A2A;
