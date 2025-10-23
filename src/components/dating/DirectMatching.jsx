@@ -1,65 +1,46 @@
 import { useState } from 'react'
-import { Heart, X, MapPin, Info, ChevronLeft, ChevronRight, Zap, Briefcase, GraduationCap, Ruler } from 'lucide-react'
+import { Heart, X, MapPin, Zap, Briefcase, GraduationCap, Ruler, ChevronLeft, ChevronRight, MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { mockUsers, filterUsers } from '../../data/users'
 
 export default function DirectMatching({ filters, onMatch }) {
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [isExpanded, setIsExpanded] = useState(false)
-  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [expandedUserId, setExpandedUserId] = useState(null)
+  const [currentImageIndex, setCurrentImageIndex] = useState({})
+  const [instantChatOpen, setInstantChatOpen] = useState(null)
 
   const filteredUsers = filterUsers(mockUsers, filters)
-  const currentProfile = filteredUsers[currentIndex]
 
-  const handleLike = () => {
-    if (currentProfile) {
-      onMatch(currentProfile)
-      alert(`It's a match with ${currentProfile.name}! 🎉 Check your chat space to start talking.`)
-    }
-    nextProfile()
+  const handleLike = (user) => {
+    onMatch(user)
+    alert(`It's a match with ${user.name}! 🎉 Check your chat space to start talking.`)
   }
 
-  const handlePass = () => {
-    nextProfile()
+  const handleInstantChat = (user) => {
+    setInstantChatOpen(user.id)
   }
 
-  const handleInstantChat = () => {
-    alert(`Instant Chat with ${currentProfile.name} activated! 💬\n\nThis is a premium feature that allows you to chat immediately without matching.\n\nPrice: $4.99`)
+  const handleSendInstantMessage = (user, message) => {
+    if (!message.trim()) return
+    alert(`Message sent to ${user.name}! 💬\n\n"${message}"\n\nThey'll see your message and can reply if interested.`)
+    setInstantChatOpen(null)
   }
 
-  const nextProfile = () => {
-    if (currentIndex < filteredUsers.length - 1) {
-      setCurrentIndex(currentIndex + 1)
-    } else {
-      setCurrentIndex(0)
-    }
-    setIsExpanded(false)
-    setCurrentImageIndex(0)
-  }
-
-  const prevProfile = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1)
-    } else {
-      setCurrentIndex(filteredUsers.length - 1)
-    }
-    setIsExpanded(false)
-    setCurrentImageIndex(0)
-  }
-
-  const nextImage = () => {
-    if (currentImageIndex < currentProfile.images.length - 1) {
-      setCurrentImageIndex(currentImageIndex + 1)
+  const nextImage = (userId) => {
+    const user = filteredUsers.find(u => u.id === userId)
+    const currentIdx = currentImageIndex[userId] || 0
+    if (currentIdx < user.images.length - 1) {
+      setCurrentImageIndex(prev => ({ ...prev, [userId]: currentIdx + 1 }))
     }
   }
 
-  const prevImage = () => {
-    if (currentImageIndex > 0) {
-      setCurrentImageIndex(currentImageIndex - 1)
+  const prevImage = (userId) => {
+    const currentIdx = currentImageIndex[userId] || 0
+    if (currentIdx > 0) {
+      setCurrentImageIndex(prev => ({ ...prev, [userId]: currentIdx - 1 }))
     }
   }
 
-  if (!currentProfile) {
+  if (filteredUsers.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground">No profiles match your filters</p>
@@ -70,213 +51,212 @@ export default function DirectMatching({ filters, onMatch }) {
 
   return (
     <div className="max-w-6xl mx-auto">
-      <div className="flex items-center justify-center mb-4">
-        <p className="text-sm text-muted-foreground">
-          {currentIndex + 1} of {filteredUsers.length} profiles
-        </p>
-      </div>
+      <p className="text-sm text-muted-foreground mb-4 text-center">
+        Showing {filteredUsers.length} profiles • Sorted by last seen
+      </p>
 
-      {/* Profile Card Container */}
-      <div className={`transition-all duration-500 ${isExpanded ? 'max-w-6xl' : 'max-w-md'} mx-auto`}>
-        <div className="bg-card rounded-3xl shadow-2xl overflow-hidden">
-          <div className="flex">
-            {/* Main Profile Section */}
-            <div className={`transition-all duration-500 ${isExpanded ? 'w-1/2' : 'w-full'}`}>
-              {/* Profile Image */}
-              <div className="relative h-[600px]">
-                <img
-                  src={currentProfile.images[currentImageIndex]}
-                  alt={currentProfile.name}
-                  className="w-full h-full object-cover"
-                />
-                
-                {/* Image Navigation */}
-                {currentProfile.images.length > 1 && (
-                  <>
-                    {currentImageIndex > 0 && (
+      {/* Scrollable Profiles List */}
+      <div className="space-y-4">
+        {filteredUsers.map((user) => {
+          const isExpanded = expandedUserId === user.id
+          const imageIdx = currentImageIndex[user.id] || 0
+
+          return (
+            <div key={user.id} className="bg-card rounded-2xl shadow-lg overflow-hidden border border-border hover-lift transition-smooth">
+              <div className="flex flex-col md:flex-row">
+                {/* Image Section */}
+                <div className="relative w-full md:w-80 h-80 md:h-auto flex-shrink-0 bg-muted">
+                  <img
+                    src={user.images[imageIdx]}
+                    alt={user.name}
+                    className="w-full h-full object-cover"
+                  />
+
+                  {/* Image Counter */}
+                  <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-md px-3 py-1 rounded-full text-white text-sm">
+                    {imageIdx + 1} / {user.images.length}
+                  </div>
+
+                  {/* Image Navigation */}
+                  {user.images.length > 1 && (
+                    <>
                       <button
-                        onClick={prevImage}
+                        onClick={() => prevImage(user.id)}
                         className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center transition-smooth hover:bg-white/40"
                       >
                         <ChevronLeft className="w-5 h-5 text-white" />
                       </button>
-                    )}
-                    {currentImageIndex < currentProfile.images.length - 1 && (
                       <button
-                        onClick={nextImage}
+                        onClick={() => nextImage(user.id)}
                         className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center transition-smooth hover:bg-white/40"
                       >
                         <ChevronRight className="w-5 h-5 text-white" />
                       </button>
-                    )}
-                    {/* Image Indicators */}
-                    <div className="absolute top-4 left-0 right-0 flex justify-center space-x-1 px-4">
-                      {currentProfile.images.map((_, idx) => (
-                        <div
-                          key={idx}
-                          className={`h-1 flex-1 rounded-full transition-all ${
-                            idx === currentImageIndex ? 'bg-white' : 'bg-white/30'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </>
-                )}
-                
-                {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                
-                {/* Expand Button */}
-                <button
-                  onClick={() => setIsExpanded(!isExpanded)}
-                  className="absolute top-4 right-4 w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center transition-smooth hover:bg-white/30"
-                >
-                  <Info className="w-5 h-5 text-white" />
-                </button>
-
-                {/* Profile Info Overlay */}
-                <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                  <h2 className="text-4xl font-bold mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
-                    {currentProfile.name}, {currentProfile.age}
-                  </h2>
-                  <div className="flex items-center text-white/90 mb-3">
-                    <MapPin className="w-4 h-4 mr-1" />
-                    <span className="text-sm">{currentProfile.location}</span>
-                    <span className="mx-2">•</span>
-                    <span className="text-sm">{currentProfile.distance < 100 ? `${currentProfile.distance} miles away` : 'Far away'}</span>
-                  </div>
-                  
-                  {!isExpanded && (
-                    <p className="text-white/90 text-sm leading-relaxed line-clamp-2">{currentProfile.bio}</p>
+                    </>
                   )}
-                </div>
-              </div>
 
-              {/* Action Buttons */}
-              <div className="p-6 flex items-center justify-center space-x-4">
-                <Button
-                  onClick={handlePass}
-                  size="lg"
-                  variant="outline"
-                  className="w-16 h-16 rounded-full border-2 border-destructive text-destructive hover:bg-destructive hover:text-white"
-                >
-                  <X className="w-8 h-8" />
-                </Button>
-                
-                <Button
-                  onClick={handleInstantChat}
-                  size="lg"
-                  className="w-16 h-16 rounded-full gradient-purple text-white shadow-lg hover-scale"
-                >
-                  <Zap className="w-6 h-6" />
-                </Button>
-                
-                <Button
-                  onClick={handleLike}
-                  size="lg"
-                  className="w-16 h-16 rounded-full bg-green-500 hover:bg-green-600 text-white shadow-lg hover-scale"
-                >
-                  <Heart className="w-8 h-8" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Expanded Details Section */}
-            {isExpanded && (
-              <div className="w-1/2 p-6 overflow-y-auto max-h-[700px] bg-muted/30">
-                <h3 className="text-2xl font-bold text-foreground mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>
-                  About {currentProfile.name}
-                </h3>
-
-                {/* Bio */}
-                <div className="mb-6">
-                  <p className="text-foreground leading-relaxed">{currentProfile.bio}</p>
+                  {/* Swipe Indicator */}
+                  <div className="absolute bottom-4 left-4 right-4 flex space-x-1">
+                    {user.images.map((_, idx) => (
+                      <div
+                        key={idx}
+                        className={`h-1 flex-1 rounded-full transition-smooth ${
+                          idx === imageIdx ? 'bg-primary' : 'bg-white/30'
+                        }`}
+                      />
+                    ))}
+                  </div>
                 </div>
 
-                {/* Quick Info */}
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="bg-card rounded-lg p-3">
-                    <div className="flex items-center text-muted-foreground mb-1">
-                      <Briefcase className="w-4 h-4 mr-2" />
-                      <span className="text-xs font-medium">Occupation</span>
+                {/* Profile Info Section */}
+                <div className="flex-1 p-6 flex flex-col justify-between">
+                  {/* Basic Info */}
+                  <div>
+                    <div className="flex items-baseline gap-2 mb-2">
+                      <h2 className="text-2xl font-bold text-foreground">{user.name}</h2>
+                      <span className="text-lg text-muted-foreground">{user.age}</span>
                     </div>
-                    <p className="text-sm text-foreground font-semibold">{currentProfile.occupation}</p>
-                  </div>
-                  <div className="bg-card rounded-lg p-3">
-                    <div className="flex items-center text-muted-foreground mb-1">
-                      <GraduationCap className="w-4 h-4 mr-2" />
-                      <span className="text-xs font-medium">Education</span>
+
+                    <div className="flex items-center text-muted-foreground mb-4">
+                      <MapPin className="w-4 h-4 mr-1" />
+                      <span className="text-sm">{user.location} • {user.distance} miles away</span>
                     </div>
-                    <p className="text-sm text-foreground font-semibold">{currentProfile.education}</p>
-                  </div>
-                  <div className="bg-card rounded-lg p-3">
-                    <div className="flex items-center text-muted-foreground mb-1">
-                      <Ruler className="w-4 h-4 mr-2" />
-                      <span className="text-xs font-medium">Height</span>
+
+                    <p className="text-foreground mb-4 leading-relaxed">{user.bio}</p>
+
+                    {/* Details Grid */}
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div className="bg-muted rounded-lg p-3">
+                        <p className="text-xs text-muted-foreground mb-1">Occupation</p>
+                        <p className="text-sm font-semibold text-foreground flex items-center">
+                          <Briefcase className="w-4 h-4 mr-2" />
+                          {user.occupation}
+                        </p>
+                      </div>
+                      <div className="bg-muted rounded-lg p-3">
+                        <p className="text-xs text-muted-foreground mb-1">Education</p>
+                        <p className="text-sm font-semibold text-foreground flex items-center">
+                          <GraduationCap className="w-4 h-4 mr-2" />
+                          {user.education}
+                        </p>
+                      </div>
+                      <div className="bg-muted rounded-lg p-3">
+                        <p className="text-xs text-muted-foreground mb-1">Height</p>
+                        <p className="text-sm font-semibold text-foreground flex items-center">
+                          <Ruler className="w-4 h-4 mr-2" />
+                          {user.height}
+                        </p>
+                      </div>
+                      <div className="bg-muted rounded-lg p-3">
+                        <p className="text-xs text-muted-foreground mb-1">Looking For</p>
+                        <p className="text-sm font-semibold text-foreground">{user.lookingFor}</p>
+                      </div>
                     </div>
-                    <p className="text-sm text-foreground font-semibold">{currentProfile.height}</p>
+
+                    {/* Expandable Details */}
+                    {isExpanded && (
+                      <div className="space-y-3 mb-4 animate-in fade-in-50 duration-300">
+                        <div className="bg-muted rounded-lg p-4">
+                          <h4 className="font-semibold text-foreground mb-2">Get to Know Me</h4>
+                          {user.prompts && user.prompts.map((prompt, idx) => (
+                            <div key={idx} className="mb-3 pb-3 border-b border-border last:border-b-0">
+                              <p className="text-sm font-semibold text-primary mb-1">{prompt.question}</p>
+                              <p className="text-sm text-foreground">{prompt.answer}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="bg-muted rounded-lg p-4">
+                          <h4 className="font-semibold text-foreground mb-2">Sexual Orientation</h4>
+                          <p className="text-sm text-foreground">{user.orientation || 'Not specified'}</p>
+                        </div>
+
+                        <div className="bg-muted rounded-lg p-4">
+                          <h4 className="font-semibold text-foreground mb-2">Relationship Type</h4>
+                          <p className="text-sm text-foreground">{user.relationshipType || 'Open to anything'}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="bg-card rounded-lg p-3">
-                    <div className="flex items-center text-muted-foreground mb-1">
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2 pt-4 border-t border-border">
+                    <Button
+                      onClick={() => setExpandedUserId(isExpanded ? null : user.id)}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      {isExpanded ? 'Show Less' : 'Show More'}
+                    </Button>
+                    <Button
+                      onClick={() => handleInstantChat(user)}
+                      variant="outline"
+                      size="sm"
+                      className="px-3"
+                      title="Instant Chat (Premium)"
+                    >
+                      <Zap className="w-4 h-4 text-yellow-500" />
+                    </Button>
+                    <Button
+                      onClick={() => handleLike(user)}
+                      className="flex-1 gradient-purple text-white"
+                    >
                       <Heart className="w-4 h-4 mr-2" />
-                      <span className="text-xs font-medium">Looking For</span>
-                    </div>
-                    <p className="text-sm text-foreground font-semibold capitalize">{currentProfile.interests}</p>
+                      Like
+                    </Button>
                   </div>
                 </div>
-
-                {/* Prompts */}
-                <div className="space-y-4">
-                  <h4 className="text-lg font-semibold text-foreground">Get to Know Me</h4>
-                  {currentProfile.prompts.map((prompt, idx) => (
-                    <div key={idx} className="bg-card rounded-xl p-4 border border-border">
-                      <p className="text-sm font-medium text-primary mb-2">{prompt.question}</p>
-                      <p className="text-foreground">{prompt.answer}</p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Additional Images */}
-                {currentProfile.images.length > 1 && (
-                  <div className="mt-6">
-                    <h4 className="text-lg font-semibold text-foreground mb-3">More Photos</h4>
-                    <div className="grid grid-cols-3 gap-2">
-                      {currentProfile.images.map((img, idx) => (
-                        <img
-                          key={idx}
-                          src={img}
-                          alt={`${currentProfile.name} ${idx + 1}`}
-                          className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-smooth"
-                          onClick={() => setCurrentImageIndex(idx)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
-            )}
-          </div>
-        </div>
-      </div>
 
-      {/* Profile Navigation */}
-      <div className="flex items-center justify-center mt-6 space-x-4">
-        <Button
-          onClick={prevProfile}
-          variant="outline"
-          size="sm"
-        >
-          <ChevronLeft className="w-4 h-4 mr-1" />
-          Previous
-        </Button>
-        <Button
-          onClick={nextProfile}
-          variant="outline"
-          size="sm"
-        >
-          Next
-          <ChevronRight className="w-4 h-4 ml-1" />
-        </Button>
+              {/* Instant Chat Modal */}
+              {instantChatOpen === user.id && (
+                <div className="border-t border-border p-4 bg-muted/50">
+                  <div className="max-w-md">
+                    <h4 className="font-semibold text-foreground mb-3 flex items-center">
+                      <Zap className="w-4 h-4 mr-2 text-yellow-500" />
+                      Instant Chat - Premium Feature
+                    </h4>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Send a message to {user.name} without matching first. They can reply if interested!
+                    </p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Say something nice..."
+                        className="flex-1 bg-background text-foreground rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            handleSendInstantMessage(user, e.target.value)
+                            e.target.value = ''
+                          }
+                        }}
+                      />
+                      <Button
+                        onClick={(e) => {
+                          const input = e.target.previousElementSibling
+                          handleSendInstantMessage(user, input.value)
+                          input.value = ''
+                        }}
+                        className="gradient-purple text-white"
+                        size="sm"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        onClick={() => setInstantChatOpen(null)}
+                        variant="outline"
+                        size="sm"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">💳 $4.99 per message</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )

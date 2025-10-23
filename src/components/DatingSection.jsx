@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MessageSquare, Users, Phone } from 'lucide-react'
+import { MessageSquare, Users, Dice5 } from 'lucide-react'
 import AnonymousPosts from './dating/AnonymousPosts'
 import DirectMatching from './dating/DirectMatching'
 import VoiceSection from './dating/VoiceSection'
@@ -16,7 +16,7 @@ export default function DatingSection({ onMatch, onStartChat, matches }) {
   const tabs = [
     { id: 'posts', label: 'Posts', icon: MessageSquare },
     { id: 'matches', label: 'Matches', icon: Users },
-    { id: 'voice', label: 'Voice', icon: Phone }
+    { id: 'voice', label: 'Roll the Dice', icon: Dice5 }
   ]
 
   return (

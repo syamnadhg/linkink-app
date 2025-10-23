@@ -1,15 +1,19 @@
 import { useState } from 'react'
-import { Send, MessageCircle, Heart, User, Image as ImageIcon, X } from 'lucide-react'
+import { Send, MessageCircle, Heart, User, Image as ImageIcon, X, ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { mockPosts, filterPosts } from '../../data/users'
 
 export default function AnonymousPosts({ filters, onMatch, onStartChat }) {
   const [newPost, setNewPost] = useState('')
   const [posts, setPosts] = useState(mockPosts)
-  const [selectedPost, setSelectedPost] = useState(null)
-  const [replyText, setReplyText] = useState('')
+  const [expandedPostId, setExpandedPostId] = useState(null)
   const [selectedImage, setSelectedImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
+  const [comments, setComments] = useState({})
+  const [newComments, setNewComments] = useState({})
+  const [chatOpen, setChatOpen] = useState({})
+  const [chatMessages, setChatMessages] = useState({})
+  const [newChatMessage, setNewChatMessage] = useState({})
 
   const filteredPosts = filterPosts(posts, filters)
 
@@ -36,10 +40,11 @@ export default function AnonymousPosts({ filters, onMatch, onStartChat }) {
     const post = {
       id: Date.now(),
       userId: 'me',
+      anonymousId: `Anon-${Math.random().toString(36).substr(2, 9)}`,
       text: newPost,
       image: imagePreview,
       timestamp: 'Just now',
-      replies: 0,
+      comments: [],
       likes: 0,
       location: 'Your location',
       gender: 'your-gender',
@@ -52,12 +57,73 @@ export default function AnonymousPosts({ filters, onMatch, onStartChat }) {
     setImagePreview(null)
   }
 
-  const handleSendMatchRequest = (post) => {
-    alert(`Match request sent! Waiting for acceptance...`)
+  const handleAddComment = (postId) => {
+    const commentText = newComments[postId]?.trim()
+    if (!commentText) return
+
+    const newComment = {
+      id: Date.now(),
+      anonymousId: `Anon-${Math.random().toString(36).substr(2, 9)}`,
+      text: commentText,
+      timestamp: 'Just now'
+    }
+
+    setComments(prev => ({
+      ...prev,
+      [postId]: [...(prev[postId] || []), newComment]
+    }))
+
+    setNewComments(prev => ({
+      ...prev,
+      [postId]: ''
+    }))
   }
 
-  const handleReply = (post) => {
-    setSelectedPost(post)
+  const handleOpenChat = (postId) => {
+    setChatOpen(prev => ({
+      ...prev,
+      [postId]: !prev[postId]
+    }))
+  }
+
+  const handleSendChatMessage = (postId) => {
+    const messageText = newChatMessage[postId]?.trim()
+    if (!messageText) return
+
+    const message = {
+      id: Date.now(),
+      senderAnonymousId: `Anon-${Math.random().toString(36).substr(2, 9)}`,
+      text: messageText,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isMatchRequest: false
+    }
+
+    setChatMessages(prev => ({
+      ...prev,
+      [postId]: [...(prev[postId] || []), message]
+    }))
+
+    setNewChatMessage(prev => ({
+      ...prev,
+      [postId]: ''
+    }))
+  }
+
+  const handleSendMatchRequest = (postId) => {
+    const matchRequestMessage = {
+      id: Date.now(),
+      senderAnonymousId: `Anon-${Math.random().toString(36).substr(2, 9)}`,
+      text: '📌 Sent a match request!',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isMatchRequest: true
+    }
+
+    setChatMessages(prev => ({
+      ...prev,
+      [postId]: [...(prev[postId] || []), matchRequestMessage]
+    }))
+
+    alert('Match request sent! If they accept, you can reveal your profile.')
   }
 
   return (
@@ -122,7 +188,7 @@ export default function AnonymousPosts({ filters, onMatch, onStartChat }) {
                 <User className="w-5 h-5 text-primary" />
               </div>
               <div className="ml-3 flex-1">
-                <p className="text-sm font-semibold text-foreground">Anonymous</p>
+                <p className="text-sm font-semibold text-foreground">{post.anonymousId}</p>
                 <p className="text-xs text-muted-foreground">{post.timestamp}</p>
               </div>
             </div>
@@ -143,7 +209,7 @@ export default function AnonymousPosts({ filters, onMatch, onStartChat }) {
             <div className="flex items-center space-x-4 mb-3 text-sm text-muted-foreground">
               <span className="flex items-center">
                 <MessageCircle className="w-4 h-4 mr-1" />
-                {post.replies} replies
+                {(comments[post.id] || []).length} comments
               </span>
               <span className="flex items-center">
                 <Heart className="w-4 h-4 mr-1" />
@@ -152,9 +218,9 @@ export default function AnonymousPosts({ filters, onMatch, onStartChat }) {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex space-x-2">
+            <div className="flex space-x-2 mb-4">
               <Button
-                onClick={() => handleReply(post)}
+                onClick={() => handleOpenChat(post.id)}
                 variant="outline"
                 size="sm"
                 className="flex-1"
@@ -163,14 +229,98 @@ export default function AnonymousPosts({ filters, onMatch, onStartChat }) {
                 Chat
               </Button>
               <Button
-                onClick={() => handleSendMatchRequest(post)}
+                onClick={() => handleSendMatchRequest(post.id)}
                 size="sm"
                 className="flex-1 gradient-purple text-white"
               >
                 <Heart className="w-4 h-4 mr-1" />
-                Match
+                Match Request
               </Button>
             </div>
+
+            {/* Comments Section */}
+            <div className="border-t border-border pt-3 mb-3">
+              <button
+                onClick={() => setExpandedPostId(expandedPostId === post.id ? null : post.id)}
+                className="text-sm text-primary hover:text-primary/80 flex items-center mb-2"
+              >
+                {expandedPostId === post.id ? <ChevronUp className="w-4 h-4 mr-1" /> : <ChevronDown className="w-4 h-4 mr-1" />}
+                {(comments[post.id] || []).length > 0 ? `View ${(comments[post.id] || []).length} comments` : 'Add comment'}
+              </button>
+
+              {expandedPostId === post.id && (
+                <div className="space-y-3 mb-3 max-h-48 overflow-y-auto">
+                  {(comments[post.id] || []).map((comment) => (
+                    <div key={comment.id} className="bg-muted rounded-lg p-2">
+                      <div className="flex items-start">
+                        <div className="w-6 h-6 rounded-full gradient-purple-soft flex items-center justify-center flex-shrink-0">
+                          <User className="w-3 h-3 text-primary" />
+                        </div>
+                        <div className="ml-2 flex-1">
+                          <p className="text-xs font-semibold text-foreground">{comment.anonymousId}</p>
+                          <p className="text-sm text-foreground">{comment.text}</p>
+                          <p className="text-xs text-muted-foreground">{comment.timestamp}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {expandedPostId === post.id && (
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={newComments[post.id] || ''}
+                    onChange={(e) => setNewComments(prev => ({ ...prev, [post.id]: e.target.value }))}
+                    placeholder="Add a comment..."
+                    className="flex-1 bg-muted text-foreground rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <Button
+                    onClick={() => handleAddComment(post.id)}
+                    size="sm"
+                    className="gradient-purple text-white"
+                    disabled={!newComments[post.id]?.trim()}
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Chat Section */}
+            {chatOpen[post.id] && (
+              <div className="border-t border-border pt-3 bg-muted rounded-lg p-3">
+                <div className="max-h-48 overflow-y-auto space-y-2 mb-3">
+                  {(chatMessages[post.id] || []).map((msg) => (
+                    <div key={msg.id} className={`flex ${msg.isMatchRequest ? 'justify-center' : 'justify-start'}`}>
+                      <div className={`max-w-xs rounded-lg px-3 py-2 ${msg.isMatchRequest ? 'bg-primary/20 text-primary text-center text-xs' : 'bg-primary text-white text-sm'}`}>
+                        {msg.text}
+                        {!msg.isMatchRequest && <p className="text-xs opacity-70 mt-1">{msg.timestamp}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={newChatMessage[post.id] || ''}
+                    onChange={(e) => setNewChatMessage(prev => ({ ...prev, [post.id]: e.target.value }))}
+                    placeholder="Send a message..."
+                    className="flex-1 bg-background text-foreground rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <Button
+                    onClick={() => handleSendChatMessage(post.id)}
+                    size="sm"
+                    className="gradient-purple text-white"
+                    disabled={!newChatMessage[post.id]?.trim()}
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>

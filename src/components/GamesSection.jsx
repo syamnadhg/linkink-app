@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Gamepad2, Users, Bot, ArrowLeft, Send } from 'lucide-react'
+import { Gamepad2, Users, Bot, ArrowLeft, Send, Sliders } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Filters from './dating/Filters'
 import TicTacToe from './games/TicTacToe'
@@ -13,12 +13,16 @@ import Pool from './games/Pool'
 import RacingCars from './games/RacingCars'
 import Chess from './games/Chess'
 import PenaltyKicks from './games/PenaltyKicks'
+import Minigolf from './games/Minigolf'
+import SwordDuels from './games/SwordDuels'
+import SpinnerWar from './games/SpinnerWar'
 
 export default function GamesSection({ matches }) {
   const [selectedGame, setSelectedGame] = useState(null)
-  const [gameMode, setGameMode] = useState(null) // 'ai', 'friend', or 'online'
+  const [gameMode, setGameMode] = useState(null)
   const [selectedFriend, setSelectedFriend] = useState(null)
   const [showFriendSelector, setShowFriendSelector] = useState(false)
+  const [filtersExpanded, setFiltersExpanded] = useState(false)
   const [filters, setFilters] = useState({
     distance: 'all',
     gender: 'all',
@@ -102,6 +106,27 @@ export default function GamesSection({ matches }) {
       description: 'Speed calculation',
       icon: '🧮',
       component: QuickMath
+    },
+    {
+      id: 'minigolf',
+      name: 'Mini Golf',
+      description: 'Complete 9 holes',
+      icon: '⛳',
+      component: Minigolf
+    },
+    {
+      id: 'swordduels',
+      name: 'Sword Duels',
+      description: 'Battle to victory',
+      icon: '⚔️',
+      component: SwordDuels
+    },
+    {
+      id: 'spinnerwar',
+      name: 'Spinner War',
+      description: 'Push opponent out',
+      icon: '🌪️',
+      component: SpinnerWar
     }
   ]
 
@@ -124,7 +149,6 @@ export default function GamesSection({ matches }) {
       }
       setShowFriendSelector(true)
     } else if (mode === 'online') {
-      // For online mode, we'd use filters
       setGameMode('online')
     } else {
       setGameMode(mode)
@@ -135,7 +159,6 @@ export default function GamesSection({ matches }) {
     setSelectedFriend(friend)
     setGameMode('friend')
     setShowFriendSelector(false)
-    // In a real app, send game request to friend
     alert(`Game request sent to ${friend.name}!`)
   }
 
@@ -249,52 +272,136 @@ export default function GamesSection({ matches }) {
     )
   }
 
-  // Game selection grid
+  // Game selection with left-side filters
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-foreground">Choose a Game</h2>
-        <Filters filters={filters} setFilters={setFilters} />
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {games.map((game) => (
-          <div
-            key={game.id}
-            onClick={() => handleSelectGame(game)}
-            className="bg-card rounded-xl p-6 shadow-md border border-border hover-lift transition-smooth cursor-pointer text-center"
-          >
-            <div className="text-5xl mb-3">{game.icon}</div>
-            <h3 className="font-semibold text-foreground mb-1">{game.name}</h3>
-            <p className="text-sm text-muted-foreground">{game.description}</p>
+    <div className="flex gap-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Left Sidebar - Filters */}
+      <div className={`${filtersExpanded ? 'w-full md:w-64' : 'hidden md:block md:w-64'} flex-shrink-0`}>
+        <div className="bg-card rounded-2xl shadow-lg p-4 border border-border sticky top-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-foreground flex items-center">
+              <Sliders className="w-4 h-4 mr-2" />
+              Filters
+            </h3>
+            <button
+              onClick={() => setFiltersExpanded(!filtersExpanded)}
+              className="md:hidden text-muted-foreground hover:text-foreground"
+            >
+              ✕
+            </button>
           </div>
-        ))}
+
+          <div className="space-y-4">
+            {/* Distance Filter */}
+            <div>
+              <label className="text-sm font-semibold text-foreground block mb-2">Distance</label>
+              <select
+                value={filters.distance}
+                onChange={(e) => setFilters({ ...filters, distance: e.target.value })}
+                className="w-full bg-muted text-foreground rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="all">All Distances</option>
+                <option value="10">Within 10 miles</option>
+                <option value="25">Within 25 miles</option>
+                <option value="50">Within 50 miles</option>
+                <option value="100">Within 100 miles</option>
+                <option value="500">Within 500 miles</option>
+              </select>
+            </div>
+
+            {/* Gender Filter */}
+            <div>
+              <label className="text-sm font-semibold text-foreground block mb-2">Gender</label>
+              <select
+                value={filters.gender}
+                onChange={(e) => setFilters({ ...filters, gender: e.target.value })}
+                className="w-full bg-muted text-foreground rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="all">All Genders</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="non-binary">Non-Binary</option>
+              </select>
+            </div>
+
+            {/* Interests Filter */}
+            <div>
+              <label className="text-sm font-semibold text-foreground block mb-2">Interests</label>
+              <select
+                value={filters.interests}
+                onChange={(e) => setFilters({ ...filters, interests: e.target.value })}
+                className="w-full bg-muted text-foreground rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="all">All Interests</option>
+                <option value="casual">Casual</option>
+                <option value="long-term">Long-term</option>
+                <option value="friendship">Friendship</option>
+              </select>
+            </div>
+
+            <Button
+              onClick={() => setFilters({ distance: 'all', gender: 'all', interests: 'all' })}
+              variant="outline"
+              className="w-full text-sm"
+            >
+              Reset Filters
+            </Button>
+          </div>
+        </div>
       </div>
 
-      <div className="mt-8 bg-muted rounded-xl p-5">
-        <h3 className="text-sm font-bold text-foreground mb-3">How to Play</h3>
-        <ul className="space-y-2 text-sm text-muted-foreground">
-          <li className="flex items-start">
-            <span className="text-primary mr-2">•</span>
-            <span>Choose a game from the grid above</span>
-          </li>
-          <li className="flex items-start">
-            <span className="text-primary mr-2">•</span>
-            <span>Select your play mode: vs AI, vs Friend, or vs Online Player</span>
-          </li>
-          <li className="flex items-start">
-            <span className="text-primary mr-2">•</span>
-            <span>If playing vs Friend, select from your online matches</span>
-          </li>
-          <li className="flex items-start">
-            <span className="text-primary mr-2">•</span>
-            <span>Use filters to find online players with specific preferences</span>
-          </li>
-          <li className="flex items-start">
-            <span className="text-primary mr-2">•</span>
-            <span>Chat or voice chat while gaming to bond with your match!</span>
-          </li>
-        </ul>
+      {/* Right Content - Games Grid */}
+      <div className="flex-1">
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-foreground">Choose a Game</h2>
+          <button
+            onClick={() => setFiltersExpanded(!filtersExpanded)}
+            className="md:hidden flex items-center gap-2 px-3 py-2 bg-card rounded-lg border border-border hover:bg-muted transition-smooth"
+          >
+            <Sliders className="w-4 h-4" />
+            <span className="text-sm">Filters</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+          {games.map((game) => (
+            <div
+              key={game.id}
+              onClick={() => handleSelectGame(game)}
+              className="bg-card rounded-xl p-6 shadow-md border border-border hover-lift transition-smooth cursor-pointer text-center group"
+            >
+              <div className="text-5xl mb-3 group-hover:scale-110 transition-transform">{game.icon}</div>
+              <h3 className="font-semibold text-foreground mb-1">{game.name}</h3>
+              <p className="text-sm text-muted-foreground">{game.description}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Info Section */}
+        <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-2xl p-6 border border-primary/20">
+          <h3 className="font-bold text-foreground mb-4 flex items-center">
+            <Gamepad2 className="w-5 h-5 mr-2 text-primary" />
+            How to Play
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-muted-foreground">
+            <div className="flex items-start">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs font-bold mr-3 flex-shrink-0">1</span>
+              <span>Choose a game from the grid</span>
+            </div>
+            <div className="flex items-start">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs font-bold mr-3 flex-shrink-0">2</span>
+              <span>Select your play mode: AI, Friend, or Online</span>
+            </div>
+            <div className="flex items-start">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs font-bold mr-3 flex-shrink-0">3</span>
+              <span>Use filters to find online players</span>
+            </div>
+            <div className="flex items-start">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs font-bold mr-3 flex-shrink-0">4</span>
+              <span>Chat while gaming to bond!</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
